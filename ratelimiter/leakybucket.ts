@@ -22,3 +22,30 @@ function Leaky(
         last_checked_time:now
     };
 }
+
+function Consumption(
+    //the parameters to be taken
+    config:RateLimitConfig,
+    binfo:BucketInfo,
+    now:number,
+    requests:number=1 
+):
+//we are defining how the output for the function should look like
+{allowed:boolean; newBucket:BucketInfo} {
+
+    const leakedBucket=Leaky(config,binfo,now);
+
+    //leaky bucket implementation
+    if(leakedBucket.bucket_level+1>config.capacity){
+       return { allowed:false,
+            newBucket:leakedBucket
+       }
+    }else{
+        return {
+            allowed: true,
+            newBucket: {
+              ...leakedBucket,
+              bucket_level: leakedBucket.bucket_level + requests
+            }
+    }
+}}
