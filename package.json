@@ -1,0 +1,24 @@
+{
+  "name": "rate-limiter",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/Kartik-619/Rate-Limiter#readme",
+  "bugs": {
+    "url": "https://github.com/Kartik-619/Rate-Limiter/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kartik-619/Rate-Limiter.git"
+  },
+  "license": "ISC",
+  "author": "Kartik Sharma",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ioredis": "^5.9.1"
+  }
+}
