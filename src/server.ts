@@ -1,14 +1,13 @@
 import express from "express";
 
-const app=express();
+const app = express();
 
-app.use(express.jsonI());
+app.use(express.json());
 
-app.get("/api/data",(req,res)=>{
-    res.json({message:"Request allowed"});
+app.get("/api/data", (req, res) => {
+  res.json({ message: "Request allowed" });
 });
 
-const PORT = 3008;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(3008, () => {
+  console.log("Server running on 3008");
 });

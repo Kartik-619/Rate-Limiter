@@ -7,14 +7,14 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
-    "target": "esnext",
+    "module": "commonjs",
+    "target": "es2020",
     "types": [],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
     // and npm install -D @types/node
-
+"moduleResolution": "node",
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
@@ -31,7 +31,7 @@
     // "noUnusedParameters": true,
     // "noFallthroughCasesInSwitch": true,
     // "noPropertyAccessFromIndexSignature": true,
-
+    "esModuleInterop": true,
     // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
