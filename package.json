@@ -1,7 +1,6 @@
 {
   "name": "rate-limiter",
   "version": "1.0.0",
-  "description": "",
   "homepage": "https://github.com/Kartik-619/Rate-Limiter#readme",
   "bugs": {
     "url": "https://github.com/Kartik-619/Rate-Limiter/issues"
@@ -20,5 +19,13 @@
   "dependencies": {
     "express": "^5.2.1",
     "ioredis": "^5.9.1"
+  },
+  "keywords": [],
+  "description": "",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.6",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   }
 }
