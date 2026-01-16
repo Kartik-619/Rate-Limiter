@@ -1,12 +1,12 @@
 import express from "express";
 import { connectRedis } from "./redis/redis";
-
+import { rateLimiter } from "./middleware/rateLimit";
 
 const app = express();
 
 app.use(express.json());
 
-app.get("/api/data", (req, res) => {
+app.get("/api/data", rateLimiter,(req, res) => {
   res.json({ message: "Request allowed" });
 });
 
