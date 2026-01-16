@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "express": "^5.2.1",
-    "ioredis": "^5.9.1"
+    "ioredis": "^5.9.1",
+    "redis": "^5.10.0"
   },
   "keywords": [],
   "description": "",
