@@ -1,4 +1,4 @@
-import {createClient} from "redis";//initializing a new client instance for redis
+//initializing a new client instance for redis
 import { redisClient } from "../redis/redis";
 
 const CAPACITY = 10;
