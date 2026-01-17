@@ -1,7 +1,7 @@
 import {createClient} from "redis";//initializing a new client instance for redis
 
 //creating a new redis client
-export const redisClient=createClient();
+export const redisClient=createClient({ url: "redis://127.0.0.1:6379"});
 
 //setting up an event listener to handle errors
 redisClient.on("error",(err)=>{
