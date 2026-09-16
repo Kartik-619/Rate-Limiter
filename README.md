@@ -1,226 +1,365 @@
-<h2>🚦 Real-Time Rate Limiter Service (Leaky Bucket Algorithm)</h2>
+# Real-Time Rate Limiter Service (Leaky Bucket Algorithm)
 
-<ul>
-  <li>Redis-backed real-time rate limiting service</li>
-  <li>Built using TypeScript, Express, and Redis</li>
-  <li>Implements the Leaky Bucket algorithm</li>
-  <li>Focuses on infrastructure-level backend engineering</li>
-  <li>Not a CRUD-based application</li>
-</ul>
+A Redis-backed, real-time API rate limiting service built with **TypeScript, Express, and Redis**. It implements the **Leaky Bucket algorithm** to protect APIs against abuse, traffic spikes, and application-level DDoS attacks by enforcing a steady, controlled request flow per client.
 
-<br>
+This project is an infrastructure-level backend engineering exercise — it focuses on distributed systems concepts, algorithmic rate limiting, and Redis-backed shared state rather than conventional CRUD application logic.
 
-<h4>📌 Problem Statement</h4>
-<ul>
-  <li>APIs need protection against abuse (too many requests)</li>
-  <li>APIs face sudden traffic spikes</li>
-  <li>Accidental overload can crash systems</li>
-  <li>DDoS-like behavior can occur at application level</li>
-</ul>
+---
 
-<br>
+## Table of Contents
 
-<h4>Without rate limiting:</h4>
-<ul>
-  <li>Servers can crash</li>
-  <li>Databases can get overwhelmed</li>
-  <li>Fair usage cannot be enforced</li>
-  <li>System stability becomes unpredictable</li>
-  <li>Rate limiting solves this by controlling request frequency</li>
-</ul>
+- [Problem Statement](#problem-statement)
+- [The Leaky Bucket Algorithm](#the-leaky-bucket-algorithm)
+- [Why Redis?](#why-redis)
+- [Architecture Overview](#architecture-overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Installation & Setup](#installation--setup)
+- [Configuration](#configuration)
+- [Usage & Demo](#usage--demo)
+- [Testing](#testing)
+- [Key Learnings](#key-learnings)
+- [Limitations](#limitations)
+- [Future Improvements](#future-improvements)
+- [Author](#author)
 
-<br>
+---
 
-<h4>🧠 Why Leaky Bucket?</h4>
-<ul>
-  <li>Smooths out burst traffic</li>
-  <li>Enforces a steady request flow</li>
-  <li>Allows controlled bursts</li>
-  <li>Prevents backend overload</li>
-  <li>Commonly used in API gateways</li>
-  <li>Used in network traffic shaping</li>
-  <li>Used in payment systems</li>
-  <li>Used in authentication services</li>
-</ul>
+## Problem Statement
 
-<br>
+Public and internal APIs are exposed to a variety of threats and operational risks:
 
-<h4>⚙️ How Leaky Bucket Works (Conceptually)</h4>
-<ul>
-  <li>Think of requests as water added to a bucket</li>
-  <li>Each request increases the bucket level</li>
-  <li>Water leaks out at a fixed rate</li>
-  <li>If the bucket overflows, the request is rejected</li>
-</ul>
+| Risk                                    | Consequence                                             |
+| --------------------------------------- | ------------------------------------------------------- |
+| Malicious abuse / scraping              | Excessive resource consumption                          |
+| Sudden traffic spikes                   | Service degradation                                     |
+| Accidental client overload (buggy loops) | Cascading system failure                               |
+| Application-level DDoS behavior         | Unpredictable availability                              |
 
-<br>
+**Without rate limiting:**
+- Backend servers can crash under load.
+- Databases can be overwhelmed by rapid request floods.
+- Fair usage between consumers cannot be enforced.
+- Overall system stability becomes unpredictable.
 
-<h4>Key Properties</h4>
-<ul>
-  <li>Capacity → maximum burst allowed</li>
-  <li>Leak rate → speed at which requests are processed</li>
-  <li>Stateful → bucket state persists per client</li>
-</ul>
+Rate limiting solves these problems by restricting the frequency with which clients (identified per IP address) may submit requests.
 
-<br>
+---
 
-<h4>🏗️ Architecture Overview</h4>
-<ul>
-  <li>Client sends request</li>
-  <li>Request hits Express API</li>
-  <li>Rate Limiter Middleware executes</li>
-  <li>Redis stores shared rate-limit state</li>
-</ul>
+## The Leaky Bucket Algorithm
 
-<br>
+The Leaky Bucket algorithm is a classic traffic-shaping mechanism. It models requests as water being poured into a bucket:
 
-<h4>Why Redis?</h4>
-<ul>
-  <li>Extremely fast (in-memory)</li>
-  <li>Shared across multiple instances</li>
-  <li>Enables horizontal scaling</li>
-  <li>TTL support for auto-cleanup</li>
-  <li>Common industry choice for rate limiting</li>
-</ul>
+1. **Each request increases the bucket level.**
+2. **Water leaks out of the bucket at a fixed, steady rate** (the leak rate).
+3. If a request arrives when the bucket is already full, the **bucket overflows** and the request is **rejected** (`429 Too Many Requests`).
 
-<br>
+### Why Leaky Bucket?
 
-<h4>🧩 Tech Stack</h4>
-<ul>
-  <li>Node.js</li>
-  <li>TypeScript</li>
-  <li>Express</li>
-  <li>Redis</li>
-  <li>Docker (for Redis)</li>
-  <li>ts-node-dev (development)</li>
-</ul>
+- **Smooths out burst traffic** — sudden spikes are absorbed into the queue and processed steadily.
+- **Enforces a steady request flow** — the backend is never exposed to unpredictable load.
+- **Allows controlled bursts** — short bursts within capacity are permitted, keeping latency low.
+- **Prevents backend overload** — throughput is capped and predictable.
+- Industry-proven — used in API gateways, network traffic shaping, payment systems, and authentication services.
 
-<br>
+### Key Properties
 
-<h4>📁 Project Structure</h4>
-<ul>
-  <li>src/server.ts → Express app entry point</li>
-  <li>src/redis/redis.ts → Redis client setup</li>
-  <li>src/limiter/leaky.ts → Leaky Bucket algorithm logic</li>
-  <li>src/middleware/rateLimiter.ts → Express middleware</li>
-</ul>
+| Property  | Description                                          |
+| --------- | ---------------------------------------------------- |
+| Capacity  | Maximum burst size allowed per client (default: 10)  |
+| Leak rate | Rate at which requests are processed per second (default: 1) |
+| Stateful  | Bucket state persists per client across requests     |
 
-<br>
+### Core Logic & Redis Integration
 
-<h4>🔑 Core Logic (Leaky Bucket + Redis)</h4>
-<ul>
-  <li>Each client is identified using IP address</li>
-  <li>Redis hash stores per-client state</li>
-  <li>Key format: rate_limit:&lt;ip&gt;</li>
-  <li>bucket_level tracks current load</li>
-  <li>last_checked_time tracks leakage timing</li>
-</ul>
+- Each client is identified by its **IP address**.
+- A **Redis hash** stores the per-client state under the key `rate_limit:<ip>`.
+- `bucket_level` tracks the current bucket load.
+- `last_checked_time` records when leakage was last accounted for.
+- A **TTL of 60 seconds** (inactive-entry timeout) expires stale bucket keys automatically when a client stops sending requests.
 
-<br>
+### Request Flow
 
-<h4>Flow</h4>
-<ul>
-  <li>Fetch bucket state from Redis</li>
-  <li>Calculate leaked tokens using elapsed time</li>
-  <li>Check against bucket capacity</li>
-  <li>Allow or reject the request</li>
-  <li>Update Redis state</li>
-  <li>Set TTL to prevent stale keys</li>
-</ul>
+1. Client sends a request to a protected endpoint.
+2. The rate limiter middleware executes before the route handler.
+3. Bucket state is fetched from Redis.
+4. Leaked tokens are computed from elapsed time and subtracted from the bucket level.
+5. The bucket level is checked against capacity — if the bucket would overflow, the request is rejected.
+6. Otherwise, the bucket is incremented and the updated state is persisted back to Redis.
+7. The TTL is refreshed so the client's bucket cleans up after a period of inactivity.
 
-<br>
+---
 
-<h4>🧪 Example Limiter Logic</h4>
-<ul>
-  <li>CAPACITY = 10</li>
-  <li>LEAK_RATE = 1 token per second</li>
-  <li>Allows short request bursts</li>
-  <li>Enforces steady throughput</li>
-  <li>Prevents abuse</li>
-</ul>
+## Why Redis?
 
-<br>
+| Property             | Benefit                                                          |
+| -------------------- | ---------------------------------------------------------------- |
+| In-memory speed      | Sub-millisecond reads/writes on the hot path                     |
+| Shared state         | Rate-limit state is available across multiple application instances |
+| Horizontal scaling   | The limiter works correctly behind a load balancer               |
+| TTL support          | Automatic cleanup of stale per-client state                      |
+| Industry standard    | Widely used for rate limiting, caching, and session storage      |
 
-<h4>🚀 Getting Started</h4>
-<ul>
-  <li>Install dependencies using npm install</li>
-  <li>Run Redis using Docker</li>
-  <li>Verify Redis using redis-cli ping</li>
-  <li>Start server with ts-node-dev</li>
-</ul>
+Characteristics like atomic command execution and Lua scripting also make Redis the natural foundation for building correct, race-free rate limiting logic.
 
-<br>
+---
 
-<h4>Expected Output</h4>
-<ul>
-  <li>Redis connected</li>
-  <li>Server running on port 3008</li>
-</ul>
+## Architecture Overview
 
-<br>
+```mermaid
+flowchart LR
+    Client[Client] -->|HTTP Request| App[Express App]
+    App --> MW[Rate Limiter Middleware]
 
-<h4>🧪 Testing the Rate Limiter</h4>
-<ul>
-  <li>Send a single request using curl</li>
-  <li>Send burst requests using PowerShell loop</li>
-  <li>Initial requests should be allowed</li>
-  <li>Excess requests return 429 Too Many Requests</li>
-</ul>
+    subgraph MW2 [Redis]
+        R[(Redis)]
+    end
 
-<br>
+    MW -->|Read / Write bucket state| R
+    MW -->|Allowed| Route[Route Handler]
+    MW -->|Rejected| Resp[429 Too Many Requests]
+    Route --> Output[200 Response]
+```
 
-<h4>🧠 Key Learnings</h4>
-<ul>
-  <li>How real rate limiting works internally</li>
-  <li>Using Redis as shared infrastructure state</li>
-  <li>Difference between traffic smoothing and blocking</li>
-  <li>Docker networking and port publishing</li>
-  <li>Debugging infra issues (IPv4 vs IPv6)</li>
-  <li>Middleware-based enforcement</li>
-</ul>
+```
+Client ──Request──▶ Express API ──▶ Rate Limiter Middleware ──▶ Redis (shared state)
+                                            │
+                              Allowed ◀─────┴─────▶ 429 Too Many Requests
+```
 
-<br>
+---
 
-<h4>🛠️ Limitations (Intentional)</h4>
-<ul>
-  <li>Not atomic under extreme concurrency</li>
-  <li>No Redis Lua scripts yet</li>
-  <li>IP-based identification only</li>
-  <li>Single algorithm implementation</li>
-  <li>Trade-offs made to understand fundamentals</li>
-</ul>
+## Features
 
-<br>
+- **IP-based rate limiting** — unique Redis key per client IP.
+- **Leaky Bucket enforcement** — configurable capacity and leak rate.
+- **Shared distributed state** — correct behavior across multiple server instances.
+- **Automatic cleanup** — per-client keys expire after a configurable inactivity TTL.
+- **Environment-driven configuration** — no hardcoded values; all tuned via `.env`.
+- **Testable core logic** — the algorithm is isolated in a pure, framework-agnostic module with a passing test suite.
+- **Production-ready scaffolding** — build, start, dev, and test npm scripts.
 
-<h4>🔮 Future Improvements</h4>
-<ul>
-  <li>Atomic updates using Redis Lua scripts</li>
-  <li>Token Bucket and Sliding Window algorithms</li>
-  <li>API-key based rate limiting</li>
-  <li>X-RateLimit headers</li>
-  <li>Metrics dashboard using WebSockets</li>
-  <li>Convert into standalone infra service</li>
-</ul>
+---
 
-<br>
+## Tech Stack
 
-<h4>🎯 Why This Project Matters</h4>
-<ul>
-  <li>Not a CRUD application</li>
-  <li>Demonstrates system design thinking</li>
-  <li>Shows infra-level backend understanding</li>
-  <li>Highlights real-world engineering trade-offs</li>
-  <li>Used in API gateways</li>
-  <li>Used in auth platforms</li>
-  <li>Used in payment systems</li>
-  <li>Used in SaaS backends</li>
-</ul>
+| Layer          | Technology                                                       |
+| -------------- | ---------------------------------------------------------------- |
+| Runtime        | [Node.js](https://nodejs.org) (>= 18)                             |
+| Language       | [TypeScript](https://www.typescriptlang.org) (strict mode)        |
+| Web framework  | [Express](https://expressjs.com)                                  |
+| Cache / Store  | [Redis](https://redis.io) (node-redis client)                     |
+| Configuration  | [dotenv](https://www.npmjs.com/package/dotenv)                    |
+| Testing        | Node.js built-in test runner (`node:test`)                        |
+| Dev tooling    | `ts-node-dev`, `typescript`                                       |
+| Containerization | [Docker](https://www.docker.com) (for local Redis)               |
 
-<br>
+---
 
-<h4>🧑‍💻 Author</h4>
-<ul>
-  <li>Kartik Sharma</li>
-  <li>Backend-focused developer</li>
-  <li>Exploring real-world infrastructure systems</li>
-</ul>
+## Project Structure
+
+```
+Rate-Limiter/
+├── .env                        # Environment configuration
+├── .gitignore                  # Git ignore rules
+├── package.json                # Scripts, dependencies, metadata
+├── tsconfig.json               # TypeScript configuration
+├── todo.md                     # Improvement roadmap
+├── src/
+│   ├── server.ts               # Express entry point
+│   ├── config.ts               # Environment-driven configuration
+│   ├── redis/
+│   │   └── redis.ts            # Redis client setup & connection
+│   ├── middleware/
+│   │   └── rateLimit.ts        # Express middleware (IP key building)
+│   ├── limiter/
+│   │   └── leakyBucket.ts      # Redis persistence + algorithm wrapper
+│   ├── ratelimiter/
+│   │   └── leakybucket.ts      # Pure, parameterized leaky bucket logic
+│   └── test/
+│       └── leakyBucket.test.ts # Unit tests for the algorithm
+└── dist/                       # Compiled output (generated by build)
+```
+
+---
+
+## Installation & Setup
+
+### Prerequisites
+
+- Node.js **>= 18**
+- npm
+- Redis (local install, or Docker as shown below)
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Start Redis
+
+Local Redis is required. If you have Docker, run:
+
+```bash
+docker run -d --name redis -p 6379:6379 redis:latest
+```
+
+Verify connectivity:
+
+```bash
+redis-cli ping
+# => PONG
+```
+
+> **Note:** If `redis-cli ping` fails while Redis is running, the client may be resolving to IPv6. Force IPv4 with `redis-cli -h 127.0.0.1 ping` or ensure the Docker port is published on `127.0.0.1:6379`.
+
+### 3. Configure Environment
+
+Copy the values in `.env` (already created) and adjust as needed — see [Configuration](#configuration).
+
+### 4. Run the Server
+
+Development (with hot reload):
+
+```bash
+npm run dev
+```
+
+Production build and start:
+
+```bash
+npm run build
+npm start
+```
+
+**Expected output:**
+
+```
+Redis connected
+Server running on 3008
+```
+
+---
+
+## Configuration
+
+All runtime behavior is driven by environment variables. See `.env`:
+
+| Variable                   | Default               | Description                                        |
+| -------------------------- | --------------------- | -------------------------------------------------- |
+| `PORT`                     | `3008`                | Port the Express server listens on                 |
+| `REDIS_URL`                | `redis://127.0.0.1:6379` | Redis connection URL                            |
+| `RATE_LIMIT_CAPACITY`      | `10`                  | Maximum requests that can be queued in the bucket  |
+| `RATE_LIMIT_LEAK_RATE`     | `1`                   | Requests processed per second (leak rate)          |
+| `RATE_LIMIT_TTL`           | `60`                  | Key expiry (seconds) after client inactivity       |
+
+Example — allow 20 queued requests at 2 requests/second:
+
+```
+RATE_LIMIT_CAPACITY=20
+RATE_LIMIT_LEAK_RATE=2
+```
+
+---
+
+## Usage & Demo
+
+### Endpoint
+
+| Method | Path         | Protected | Description          |
+| ------ | ------------ | --------- | -------------------- |
+| `GET`  | `/api/data`  | Yes       | Returns a success message if not rate limited |
+
+### Single Request
+
+```bash
+curl http://localhost:3008/api/data
+# => {"message":"Request allowed"}
+```
+
+### Burst Test (PowerShell)
+
+Fire 12 rapid requests — the first 10 succeed, excess requests return `429 Too Many Requests`:
+
+```powershell
+1..12 | ForEach-Object {
+  (Invoke-WebRequest -Uri "http://localhost:3008/api/data" -UseBasicParsing).StatusCode
+}
+```
+
+### Burst Test (Linux/macOS)
+
+```bash
+for i in {1..12}; do
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3008/api/data
+done
+```
+
+**Expected output:** ten `200` responses followed by `429` responses (with the default capacity of 10).
+
+---
+
+## Testing
+
+Unit tests cover the pure leaky bucket logic using the Node.js built-in test runner — no additional test framework required.
+
+```bash
+npm test
+```
+
+Covered scenarios:
+
+- Token leakage proportional to elapsed time.
+- Bucket level never drops below zero.
+- Request allowed when the bucket has room.
+- Request rejected when the bucket is full.
+- Multiple requests accounted for in a single operation.
+- Burst accommodation after tokens leak.
+
+---
+
+## Key Learnings
+
+- How production rate limiting works internally (algorithms, state, TTLs).
+- Using Redis as **shared, distributed infrastructure state** rather than a simple cache.
+- The difference between **traffic smoothing** (leaky bucket) and **hard blocking** (fixed window).
+- Docker networking, port publishing, and the IPv4/IPv6 pitfalls of local Redis.
+- Enforcing cross-cutting concerns cleanly via **Express middleware**.
+- Structuring algorithm code as **pure, testable modules** separated from infrastructure concerns.
+
+---
+
+## Limitations
+
+The following are intentional, documented trade-offs made to focus on fundamentals — each is a known path for future work:
+
+- **Non-atomic check-then-set** — concurrent requests can race on the same result. The hot path would be made race-free with a Redis Lua script.
+- **IP-based identification only** — adequate for demonstration; production systems typically combine IP with API keys, user IDs, or device fingerprints.
+- **Single algorithm** — only the leaky bucket is implemented (token bucket and sliding window are planned).
+- **No standard rate-limit response headers** — `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` are not yet emitted.
+
+---
+
+## Future Improvements
+
+- [ ] Atomic bucket updates using **Redis Lua scripts**
+- [ ] Add **Token Bucket** and **Sliding Window** algorithms with a configurable strategy
+- [ ] Support **API-key based** rate limiting alongside IP
+- [ ] Emit standard **`X-RateLimit-*`** response headers and `Retry-After` on 429
+- [ ] **WebSocket metrics dashboard** for live request-rate monitoring
+- [ ] GitHub Actions **CI pipeline** (typecheck, lint, tests)
+- [ ] `docker-compose.yml` for one-command Redis + app startup
+- [ ] Health/metrics endpoint exposing Redis connectivity and bucket counts
+- [ ] Graceful shutdown (SIGINT/SIGTERM) with clean Redis connection teardown
+
+---
+
+## Author
+
+**Kartik Sharma**
+
+- Backend-focused developer exploring real-world infrastructure systems.
+- GitHub: [Kartik-619](https://github.com/Kartik-619)
+- Repository: [Rate-Limiter](https://github.com/Kartik-619/Rate-Limiter)
