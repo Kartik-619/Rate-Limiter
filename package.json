@@ -1,6 +1,7 @@
 {
   "name": "rate-limiter",
   "version": "1.0.0",
+  "description": "Redis-backed API rate limiter implementing the Leaky Bucket algorithm",
   "homepage": "https://github.com/Kartik-619/Rate-Limiter#readme",
   "bugs": {
     "url": "https://github.com/Kartik-619/Rate-Limiter/issues"
@@ -12,17 +13,28 @@
   "license": "ISC",
   "author": "Kartik Sharma",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "ts-node --transpile-only src/test/leakyBucket.test.ts"
+  },
+  "keywords": [
+    "rate-limiting",
+    "leaky-bucket",
+    "redis",
+    "express",
+    "api-protection"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
+    "dotenv": "^16.6.1",
     "express": "^5.2.1",
-    "ioredis": "^5.9.1",
     "redis": "^5.10.0"
   },
-  "keywords": [],
-  "description": "",
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.6",

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { isAllowed } from "../limiter/leak&bucket";
+import { isAllowed } from "../limiter/leakyBucket";
 
 export async function rateLimiter(
   req: Request,//represents incoming http request
