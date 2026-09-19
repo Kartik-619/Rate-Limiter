@@ -1,0 +1,28 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: rate-limiter-redis
+    ports:
+      - "6379:6379"
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  app:
+    build: .
+    container_name: rate-limiter-app
+    ports:
+      - "3008:3008"
+    environment:
+      - PORT=3008
+      - REDIS_URL=redis://redis:6379
+      - RATE_LIMIT_CAPACITY=10
+      - RATE_LIMIT_LEAK_RATE=1
+      - RATE_LIMIT_TTL=60
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: always
